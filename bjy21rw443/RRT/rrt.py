@@ -178,10 +178,10 @@ def basicSearch(tree, start, goal):
     start_node = nodes_dict[start]
     start_node.parent = start
     queue = Queue.Queue()
-    queue.put(start_node)  # Insert start to queue
+    queue.put(start)  # Insert start to queue
     closed = {}  # closed := empty dictionary
 
-    while queue.not_empty:  # Checking that queue is nonempty
+    while not queue.empty():  # Checking that queue is nonempty
         s = queue.get()
         s_node = nodes_dict[s]
 
@@ -229,7 +229,7 @@ def plotTree(points, tree):
         point = points[id]
 
         # Find all neighbors labels
-        neighbors = [x[0] for x in adjListMap[id]]
+        neighbors = adjListMap[id]
 
         # Draw line segment from inital point to its neighors
         for neighbor_id in neighbors:
@@ -331,7 +331,6 @@ def RRT(robot, obstacles, startPoint, goalPoint):
     return points, tree, path
 
 if __name__ == "__main__":
-    """ Testing (REMOVE LATER)
     # Retrive file name for input data
     if(len(sys.argv) < 6):
         print "Five arguments required: python spr.py [env-file] [x1] [y1] [x2] [y2]"
@@ -342,12 +341,18 @@ if __name__ == "__main__":
     y1 = float(sys.argv[3])
     x2 = float(sys.argv[4])
     y2 = float(sys.argv[5])
-    """
+
+    """ FOR TESTING REMOVE LATER--------------------------------------------------------------------------
     filename = "robot_env_01.txt"
     x1 = 1.0
     y1 = 2.0
     x2 = 8.5
     y2 = 7
+
+    adjListMap = {0: [1, 2], 1: [2, 3, 4], 2: [3], 3: [4], 4: []}
+    path = basicSearch(adjListMap, 4, 3)
+    print "path = {}".format(path)
+    """
 
     # Read data and parse polygons
     lines = [line.rstrip('\n') for line in open(filename)]
@@ -426,7 +431,7 @@ if __name__ == "__main__":
     RRT(robot, obstacles, (x1, y1), (x2, y2))
     
     # Your visualization code 
-    displayRRTandPath(points, adjListMap, path, robotStart, robotGoal, obstacles) 
+    displayRRTandPath(points, adjListMap, path, robotStart, robotGoal, obstacles)
 
 
 
