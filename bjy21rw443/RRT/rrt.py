@@ -5,6 +5,7 @@ from matplotlib.path import Path
 import matplotlib.patches as patches
 import numpy as np
 import copy
+import Queue
 
 '''
 Set up matplotlib to create a plot with an empty square
@@ -72,6 +73,84 @@ def growSimpleRRT(points):
 '''
 Perform basic search 
 '''
+class Node:
+    """
+    Represents a node in the graph
+
+    Attr:
+        label: label of this node
+        parent: previously visited Node before reaching current one, None by default
+    """
+
+    def __init__(self, label):
+        self.label = label
+        self.parent = None
+
+    def __eq__(self, other):
+        """
+        Two cells are equivalent if their labels are equivalent
+        """
+        if not isinstance(other, Node):
+            return False
+
+        if self.label == other.label:
+            return True
+        return False
+
+    def __str__(self):
+        """
+        Prints out Node in the format (label, parent's label, f)
+        """
+        parent_str = 'None'
+        if self.parent is not None:
+            parent = self.parent.label
+
+        return "({0}, parent={1})".format(self.label, parent_str)
+
+    def __hash__(self):
+        """
+        Hash this node
+
+        :return: for node i, hash its label, i
+        """
+        return hash(self.label)
+
+def contained_in_closed(label, closed):
+    """
+    Check if given point is in closed dictionary or not
+
+    :param label: label of the node
+    :param closed: closed dictionary
+    :return: True if point is contained in the dictionary, False otherwise
+    """
+    if label in closed:
+        if label in closed[label]:
+            return True
+    return False
+
+def retrieve_path(start, goal, nodes_dict):
+    """
+    Find the path leading from start to goal by working backwards from the goal
+
+    Parameters:
+    start: label for the start vertex
+    goal: label for goal vertex
+    nodes_dict: dictionary with labels as keys and the corresponding vertex's node as values
+
+    Returns:
+    1D array of labels to follow from start to goal
+    """
+    curr_node = nodes_dict[goal]
+    path = [curr_node.label]  # Start at goal
+
+    while curr_node.label != start:
+        parent = curr_node.parent
+        path.append(parent.label)
+        curr_node = parent
+
+    path.reverse()  # Reverse path so it starts at start and ends at goal
+    return path
+
 def basicSearch(tree, start, goal):
     path = []
     
@@ -82,7 +161,52 @@ def basicSearch(tree, start, goal):
     #
     # in which 23 would be the label for the start and 37 the
     # label for the goal.
-    
+
+    if len(tree) == 0: # No tree, then no path
+        path = None
+        return path
+
+    # Create dictionary of {labels:nodes}
+    labels = tree.keys()[:]
+    nodes = [Node(label) for label in labels]  # Create a node for every key
+
+    nodes_dict = {} # Mapping from point label to its nodes
+    for node in nodes:
+        nodes_dict[node.label] = node
+
+    # Run BFS
+    start_node = nodes_dict[start]
+    start_node.parent = start
+    queue = Queue.Queue()
+    queue.put(start)  # Insert start to queue
+    closed = {}  # closed := empty dictionary
+
+    while not queue.empty():  # Checking that queue is nonempty
+        s = queue.get()
+        s_node = nodes_dict[s]
+
+        if s_node.label == goal:
+            path = retrieve_path(start, goal, nodes_dict)  # Get path from start to goal
+            return path
+
+        # Store in closed dictionary
+        if s_node.label in closed:
+            closed[s_node.label].append(s_node.label)
+        else:
+            closed[s_node.label] = [s_node.label]
+
+        # Get neighbors, if neighbor not in closed, then make s its parent and add to queue
+        neighbors = tree[s_node.label]
+
+        for i in range(len(neighbors)):
+            neighbor = neighbors[i]
+            neighbor_node = nodes_dict[neighbor]
+
+            if not contained_in_closed(neighbor, closed):
+                neighbor_node.parent = s_node
+                queue.put(neighbor)
+
+    path = None
     return path
 
 '''
@@ -105,7 +229,7 @@ def plotTree(points, tree):
         point = points[id]
 
         # Find all neighbors labels
-        neighbors = [x[0] for x in adjListMap[id]]
+        neighbors = adjListMap[id]
 
         # Draw line segment from inital point to its neighors
         for neighbor_id in neighbors:
@@ -252,7 +376,6 @@ def RRT(robot, obstacles, startPoint, goalPoint):
     return points, tree, path
 
 if __name__ == "__main__":
-    
     # Retrive file name for input data
     if(len(sys.argv) < 6):
         print "Five arguments required: python spr.py [env-file] [x1] [y1] [x2] [y2]"
@@ -263,6 +386,18 @@ if __name__ == "__main__":
     y1 = float(sys.argv[3])
     x2 = float(sys.argv[4])
     y2 = float(sys.argv[5])
+
+    """ FOR TESTING REMOVE LATER--------------------------------------------------------------------------
+    filename = "robot_env_01.txt"
+    x1 = 1.0
+    y1 = 2.0
+    x2 = 8.5
+    y2 = 7
+
+    adjListMap = {0: [1, 2], 1: [2, 3, 4], 2: [3], 3: [4], 4: []}
+    path = basicSearch(adjListMap, 4, 3)
+    print "path = {}".format(path)
+    """
 
     # Read data and parse polygons
     lines = [line.rstrip('\n') for line in open(filename)]
@@ -347,7 +482,7 @@ if __name__ == "__main__":
     RRT(robot, obstacles, (x1, y1), (x2, y2))
     
     # Your visualization code 
-    displayRRTandPath(points, adjListMap, path, robotStart, robotGoal, obstacles) 
+    displayRRTandPath(points, adjListMap, path, robotStart, robotGoal, obstacles)
 
 
 
