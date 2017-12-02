@@ -73,14 +73,85 @@ def growSimpleRRT(points):
 '''
 Perform basic search 
 '''
-def basicSearch(tree, start, goal):
+class Node:
+    """
+    Represents a node in the graph
+
+    Attr:
+        label: label of this node
+        parent: previously visited Node before reaching current one, None by default
     """
 
-    :param tree:
-    :param start:
-    :param goal:
-    :return:
+    def __init__(self, label):
+        self.label = label
+        self.parent = None
+
+    def __eq__(self, other):
+        """
+        Two cells are equivalent if their labels are equivalent
+        """
+        if not isinstance(other, Node):
+            return False
+
+        if self.label == other.label:
+            return True
+        return False
+
+    def __str__(self):
+        """
+        Prints out Node in the format (label, parent's label, f)
+        """
+        parent_str = 'None'
+        if self.parent is not None:
+            parent = self.parent.label
+
+        return "({0}, parent={1})".format(self.label, parent_str)
+
+    def __hash__(self):
+        """
+        Hash this node
+
+        :return: for node i, hash its label, i
+        """
+        return hash(self.label)
+
+def contained_in_closed(label, closed):
     """
+    Check if given point is in closed dictionary or not
+
+    :param label: label of the node
+    :param closed: closed dictionary
+    :return: True if point is contained in the dictionary, False otherwise
+    """
+    if label in closed:
+        if label in closed[label]:
+            return True
+    return False
+
+def retrieve_path(start, goal, nodes_dict):
+    """
+    Find the path leading from start to goal by working backwards from the goal
+
+    Parameters:
+    start: label for the start vertex
+    goal: label for goal vertex
+    nodes_dict: dictionary with labels as keys and the corresponding vertex's node as values
+
+    Returns:
+    1D array of labels to follow from start to goal
+    """
+    curr_node = nodes_dict[goal]
+    path = [curr_node.label]  # Start at goal
+
+    while curr_node.label != start:
+        parent = curr_node.parent
+        path.append(parent.label)
+        curr_node = parent
+
+    path.reverse()  # Reverse path so it starts at start and ends at goal
+    return path
+
+def basicSearch(tree, start, goal):
     path = []
     
     # Your code goes here. As the result, the function should
@@ -92,42 +163,44 @@ def basicSearch(tree, start, goal):
     # label for the goal.
 
     # Create dictionary of {labels:nodes}
-    labels = adjListMap.keys()[:]
+    labels = tree.keys()[:]
     nodes = [Node(label) for label in labels]  # Create a node for every key
 
-    nodes_dict = {}  #
+    nodes_dict = {} # Mapping from point label to its nodes
     for node in nodes:
         nodes_dict[node.label] = node
 
-    # Run search
+    # Run BFS
     start_node = nodes_dict[start]
-    start_node.g = 0
-    start_node.f = start_node.g
     start_node.parent = start
-    fringe = PriorityQueue()
-    fringe.add_node(start_node, start_node.f)  # Insert start to fringe, need to use a 2-tuple so the heapq orders based on f-value
-    closed = []  # closed := empty set
+    queue = Queue.Queue()
+    queue.put(start_node)  # Insert start to queue
+    closed = {}  # closed := empty dictionary
 
-    while len(fringe) != 0:  # Checking that fringe is nonempty
-        s = fringe.pop_node()
-        if s.label == goal:
+    while queue.not_empty:  # Checking that queue is nonempty
+        s = queue.get()
+        s_node = nodes_dict[s]
+
+        if s_node.label == goal:
             path = retrieve_path(start, goal, nodes_dict)  # Get path from start to goal
-            pathLength = nodes_dict[goal].f
-            return path, pathLength
-        closed.append(s.label)
+            return path
 
-        # Get neighbors and costs to move to that neighbor
-        edges = adjListMap[s.label]
-        neighbors = [edge[0] for edge in edges]  # Labels for neighbors of s
-        edge_costs = [edge[1] for edge in edges]  # Corresponding costs to move to the neighbor
+        # Store in closed dictionary
+        if s_node.label in closed:
+            closed[s_node.label].append(s_node.label)
+        else:
+            closed[s_node.label] = [s_node.label]
+
+        # Get neighbors, if neighbor not in closed, then make s its parent and add to queue
+        neighbors = tree[s_node.label]
 
         for i in range(len(neighbors)):
             neighbor = neighbors[i]
             neighbor_node = nodes_dict[neighbor]
-            edge_cost = edge_costs[i]
 
-            if neighbor not in closed:
-                update_vertex(s, neighbor_node, edge_cost, fringe)
+            if not contained_in_closed(neighbor, closed):
+                neighbor_node.parent = s_node
+                queue.put(neighbor)
 
     path = None
     return path
