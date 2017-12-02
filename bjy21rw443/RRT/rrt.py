@@ -162,6 +162,10 @@ def basicSearch(tree, start, goal):
     # in which 23 would be the label for the start and 37 the
     # label for the goal.
 
+    if len(tree) == 0: # No tree, then no path
+        path = None
+        return path
+
     # Create dictionary of {labels:nodes}
     labels = tree.keys()[:]
     nodes = [Node(label) for label in labels]  # Create a node for every key
@@ -327,7 +331,7 @@ def RRT(robot, obstacles, startPoint, goalPoint):
     return points, tree, path
 
 if __name__ == "__main__":
-    
+    """ Testing (REMOVE LATER)
     # Retrive file name for input data
     if(len(sys.argv) < 6):
         print "Five arguments required: python spr.py [env-file] [x1] [y1] [x2] [y2]"
@@ -338,6 +342,12 @@ if __name__ == "__main__":
     y1 = float(sys.argv[3])
     x2 = float(sys.argv[4])
     y2 = float(sys.argv[5])
+    """
+    filename = "robot_env_01.txt"
+    x1 = 1.0
+    y1 = 2.0
+    x2 = 8.5
+    y2 = 7
 
     # Read data and parse polygons
     lines = [line.rstrip('\n') for line in open(filename)]
