@@ -6,6 +6,7 @@ import matplotlib.patches as patches
 import numpy as np
 import copy
 import Queue
+import math
 
 '''
 Set up matplotlib to create a plot with an empty square
@@ -62,12 +63,58 @@ def drawProblem(robotStart, robotGoal, polygons):
 '''
 Grow a simple RRT 
 '''
+def get_euclidean_distance(point1, point2):
+    """
+    Find the euclidean distance between the given points
+
+    :param point1: 2-tuple of point 1's coordinates
+    :param point2: 2-tuple of point 2's coordinates
+
+    :return: euclidean distance between the 2 points
+    """
+    x1 = point1[0]
+    y1 = point2[0]
+    x2 = point1[1]
+    y2 = point2[1]
+    dist = math.sqrt(math.pow(x2 - x1, 2) + math.pow(y2 - y1, 2))
+    return dist
+
+def find_closest_point(point, points, adjListMap):
+    """
+    Find the closest vertex to the given point based on the existing
+
+    :param point:
+    :param points:
+    :param adjListMap:
+
+    :return: label of the closest point and the distance to reach that point
+    """
+
 def growSimpleRRT(points):
     newPoints = dict()
     adjListMap = dict()
     
     # Your code goes here
-    
+    if points is None:
+        return newPoints, adjListMap
+
+    newPoints = copy.deepcopy(points)
+
+    for label in points:
+        point = points[label]
+
+        if not adjListMap: # Checks if adjListMap is empty
+            adjListMap[label] = [point] # Add point as starting node
+            continue
+
+        # Find closest point or edge to connect to
+        closest_point, closest_pt_dist = find_closest_point(point, newPoints, adjListMap)
+        closest_edge_a, closest_edge_b, closest_edge_dist = find_closest_edge(point, newPoints, adjListMap)
+
+        # If point, then add as neighbor
+
+        # If edge, then create a new point and update adjListMap and newPoints
+
     return newPoints, adjListMap
 
 '''
