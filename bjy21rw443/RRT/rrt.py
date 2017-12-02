@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.path import Path
 import matplotlib.patches as patches
 import numpy as np
+import copy
 
 '''
 Set up matplotlib to create a plot with an empty square
@@ -87,12 +88,101 @@ def basicSearch(tree, start, goal):
 '''
 Display the RRT and Path
 '''
+def plotTree(points, tree):
+    """
+    Plot roadmap in black
+
+    :param points: mapping from point id to its coordinates
+    :param tree: RRT as mapping from point id to its neighbors' ids
+    :return: None
+    """
+    if tree is None:
+        return
+
+    tree_color = 'black'
+
+    for id in tree.keys():
+        point = points[id]
+
+        # Find all neighbors labels
+        neighbors = [x[0] for x in adjListMap[id]]
+
+        # Draw line segment from inital point to its neighors
+        for neighbor_id in neighbors:
+            neighbor_pt = points[neighbor_id]
+            tree_x = [point[0], neighbor_pt[0]]
+            tree_y = [point[1], neighbor_pt[1]]
+            plt.plot(tree_x, tree_y, tree_color)
+
+def plotPath(points, path):
+    """
+    Plot path in orange. If there is no path, plot nothing
+    :param points: mapping from point id to coordinates
+    :param path: list of ids leading from start to goal
+    :return: None
+    """
+    if path is None:
+        return
+
+    path_color = 'orange'
+
+    # Add path to plot
+    path_x = []
+    path_y = []
+
+    for label in path:
+        pt = points[label]
+        path_x.append(pt[0])
+        path_y.append(pt[1])
+    plt.plot(path_x, path_y, path_color)
+
 def displayRRTandPath(points, tree, path, robotStart = None, robotGoal = None, polygons = None):
-    
-    # Your code goes here
-    # You could start by copying code from the function
-    # drawProblem and modify it to do what you need.
-    # You should draw the problem when applicable.
+    """
+    Plot the given robot start & goal, obstacles, tree and path.
+    Tree has black edges.
+    Path has orange edges.
+
+    Parameters:
+    points = mapping from point ids to their xy-coordinates as 2-tuples
+    tree = RRT as mapping from point id to its neighbors' ids
+    path = list of point ids from start to goal
+    robotStart = xy-tuple of start
+    robotGoal = xy-tuple of goal
+    polygons = list of obstacles, where an obstacle is represented as a list of cw coordinates of the vertices of an obstacle
+    Returns: None
+    """
+    # From drawProblem() (modified)
+    fig, ax = setupPlot()
+
+    if robotStart is not None:
+        patch = createPolygonPatch(robotStart, 'green')
+        ax.add_patch(patch)
+
+    if robotGoal is not None:
+        patch = createPolygonPatch(robotGoal, 'red')
+        ax.add_patch(patch)
+
+    if polygons is not None:
+        for p in range(0, len(polygons)):
+            patch = createPolygonPatch(polygons[p], 'gray')
+            ax.add_patch(patch)
+    # From drawProblem() (modified)
+
+    # Normalize all vertex coordinates (because polygons are outputted in 1x1 box, not 10x10 box)
+    points_copy = copy.deepcopy(points)
+    for label in points_copy.keys():
+        point = points_copy[label]
+        points_copy[label] = [point[0]/10.0, point[1]/10.0]
+
+    # Plot data and show
+    plotTree(points_copy, tree)
+    plotPath(points_copy, path)
+
+    title = "RRT & Path"
+    plt.title(title)
+    plt.grid(True)
+    plt.show()
+
     return 
 
 '''
