@@ -188,11 +188,56 @@ def displayRRTandPath(points, tree, path, robotStart = None, robotGoal = None, p
 '''
 Collision checking
 '''
-def isCollisionFree(robot, point, obstacles):
+def ccw(A,B,C):
+    return (C[1]-A[1]) * (B[0]-A[0]) > (B[1]-A[1]) * (C[0]-A[0])
+def intersect(A,B,C,D):
+    return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
 
+def isCollisionFree(robot, point, obstacles):
     # Your code goes here.
-    
-    return False
+    # xCor/yCor : (x1,y1)
+    xCor = point[0]
+    yCor = point[1]
+
+
+    #global robot points : [(x1,y1),(x2,y2),(x3,y3)...]
+    globalRobot =[]
+    for pt in robot:
+        tempPoint = (pt[0]+xCor,pt[1]+yCor)
+        globalRobot.append(tempPoint)
+
+    globalEdge = []
+    i = 0
+    while i < len(globalRobot):
+        if i == len(globalRobot) - 1:
+            globalEdge.append((globalRobot[i], globalRobot[0]))
+        else:
+            globalEdge.append((globalRobot[i], globalRobot[i + 1]))
+        i += 1
+    #collision or not, since it is asking isCollisionFree
+    #if collision then we should return false,means not collision free
+    #else true
+    edgeGroup=[]
+    collision = False
+    for obs in obstacles:
+        i=0
+        while i < len(obs):
+            if i == len(obs)-1:
+                edgeGroup.append((obs[i],obs[0]))
+            else:
+                edgeGroup.append((obs[i],obs[i+1]))
+            i+=1
+        obsPath = Path(np.array(obs))
+        for pt in globalRobot:
+            collision = collision or obsPath.contains_point(pt)
+            #as long as any point is in the polygon,we have collision
+
+    # need also check if every edge intersects with polygons
+    for edge in globalEdge:
+        for obsEdge in edgeGroup:
+            collision = collision or intersect(obsEdge[0], obsEdge[1], edge[0], edge[1])
+
+    return not collision
 
 '''
 The full RRT algorithm
@@ -241,6 +286,12 @@ if __name__ == "__main__":
     for p in range(0, len(obstacles)):
         print str(obstacles[p])
     print ""
+
+    # test sentence (delete before final submission) with start position
+    # point=(x1,y1)
+    # print "robot at",point,"is collisionfree ?",isCollisionFree(robot,point,obstacles)
+    ########################################
+
 
     # Visualize
     robotStart = []
