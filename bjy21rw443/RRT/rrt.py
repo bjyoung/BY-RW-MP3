@@ -5,6 +5,7 @@ from matplotlib.path import Path
 import matplotlib.patches as patches
 import numpy as np
 import copy
+import Queue
 
 '''
 Set up matplotlib to create a plot with an empty square
@@ -73,6 +74,13 @@ def growSimpleRRT(points):
 Perform basic search 
 '''
 def basicSearch(tree, start, goal):
+    """
+
+    :param tree:
+    :param start:
+    :param goal:
+    :return:
+    """
     path = []
     
     # Your code goes here. As the result, the function should
@@ -82,7 +90,46 @@ def basicSearch(tree, start, goal):
     #
     # in which 23 would be the label for the start and 37 the
     # label for the goal.
-    
+
+    # Create dictionary of {labels:nodes}
+    labels = adjListMap.keys()[:]
+    nodes = [Node(label) for label in labels]  # Create a node for every key
+
+    nodes_dict = {}  #
+    for node in nodes:
+        nodes_dict[node.label] = node
+
+    # Run search
+    start_node = nodes_dict[start]
+    start_node.g = 0
+    start_node.f = start_node.g
+    start_node.parent = start
+    fringe = PriorityQueue()
+    fringe.add_node(start_node, start_node.f)  # Insert start to fringe, need to use a 2-tuple so the heapq orders based on f-value
+    closed = []  # closed := empty set
+
+    while len(fringe) != 0:  # Checking that fringe is nonempty
+        s = fringe.pop_node()
+        if s.label == goal:
+            path = retrieve_path(start, goal, nodes_dict)  # Get path from start to goal
+            pathLength = nodes_dict[goal].f
+            return path, pathLength
+        closed.append(s.label)
+
+        # Get neighbors and costs to move to that neighbor
+        edges = adjListMap[s.label]
+        neighbors = [edge[0] for edge in edges]  # Labels for neighbors of s
+        edge_costs = [edge[1] for edge in edges]  # Corresponding costs to move to the neighbor
+
+        for i in range(len(neighbors)):
+            neighbor = neighbors[i]
+            neighbor_node = nodes_dict[neighbor]
+            edge_cost = edge_costs[i]
+
+            if neighbor not in closed:
+                update_vertex(s, neighbor_node, edge_cost, fringe)
+
+    path = None
     return path
 
 '''
