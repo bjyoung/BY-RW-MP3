@@ -164,13 +164,13 @@ def get_distance_to_edge(new_point, edge, points):
     # Handle vertical line case separately
     if edge_endpt_1[0] == edge_endpt_2[0]:
         x = edge_endpt_1[0]
-        intersect_pt = [x, new_point_coord[1]] # Take x-value of either point and y-value of new point
+        intersect_pt = (x, new_point_coord[1]) # Take x-value of either point and y-value of new point
         dist = math.fabs(x - new_point_coord[0]) # Take absolute difference between x-values
         return dist, intersect_pt
     # Handle horizontal line separately
     elif edge_endpt_1[1] == edge_endpt_2[1]:
         y = edge_endpt_1[1]
-        intersect_pt = [new_point_coord[0], y]
+        intersect_pt = (new_point_coord[0], y)
         dist = math.fabs(y - new_point_coord[1])
         return dist, intersect_pt
 
@@ -184,7 +184,7 @@ def get_distance_to_edge(new_point, edge, points):
     # Find where the edge and the perpendicular line intersect
     x_intersect = ((b2 - b1) * 1.0)/(m1 - m2)
     y_intersect = m1 * x_intersect + b1
-    intersect_pt = [x_intersect, y_intersect]
+    intersect_pt = (x_intersect, y_intersect)
     dist = get_euclidean_distance(new_point_coord, intersect_pt)
     return dist, intersect_pt
 
@@ -221,7 +221,7 @@ def find_closest_edge(new_point, points, adjListMap):
     """
     closest_edge = [-1, -1]
     min_dist = 5000 # represents infinity, since 10x10 grid
-    closest_intersect_pt = [-1, -1]
+    closest_intersect_pt = (-1, -1)
 
     if has_no_edges(adjListMap):
         return closest_edge, min_dist, closest_intersect_pt
@@ -276,7 +276,7 @@ def growSimpleRRT(points):
         else:
             # Add intersection point coordinates to points
             intersect_label = numPoints + 1
-            newPoints[intersect_label] = [closest_intersect_pt]
+            newPoints[intersect_label] = closest_intersect_pt
             numPoints += 1
 
             # Update endpoint neighbors and add adjList for intersection and new points
@@ -284,17 +284,17 @@ def growSimpleRRT(points):
             endpt_b = closest_edge[1]
 
             adjListMap[endpt_a].remove(endpt_b)
-            adjListMap[endpt_a].add(intersect_label)
+            adjListMap[endpt_a].append(intersect_label)
 
             adjListMap[endpt_b].remove(endpt_a)
-            adjListMap[endpt_b].add(intersect_label)
+            adjListMap[endpt_b].append(intersect_label)
 
             adjListMap[label] = [intersect_label]
 
             adjListMap[intersect_label] = [endpt_a, endpt_b, label]
 
-        # FOR TESTING, visualize tree after every step
-        displayRRTandPath(points, adjListMap, None)
+        # # FOR TESTING, visualize tree after every step
+        # displayRRTandPath(newPoints, adjListMap, None)
 
     return newPoints, adjListMap
 
@@ -604,24 +604,24 @@ def RRT(robot, obstacles, startPoint, goalPoint):
     return points, tree, path
 
 if __name__ == "__main__":
-    # # Retrive file name for input data
-    # if(len(sys.argv) < 6):
-    #     print "Five arguments required: python spr.py [env-file] [x1] [y1] [x2] [y2]"
-    #     exit()
-    #
-    # filename = sys.argv[1]
-    # x1 = float(sys.argv[2])
-    # y1 = float(sys.argv[3])
-    # x2 = float(sys.argv[4])
-    # y2 = float(sys.argv[5])
+    # Retrive file name for input data
+    if(len(sys.argv) < 6):
+        print "Five arguments required: python spr.py [env-file] [x1] [y1] [x2] [y2]"
+        exit()
 
-    # FOR TESTING REMOVE LATER--------------------------------------------------------------------------
-    filename = "robot_env_01.txt"
-    x1 = 1.0
-    y1 = 2.0
-    x2 = 8.5
-    y2 = 7
-    #----------------------------------------------------------------------------------------------------
+    filename = sys.argv[1]
+    x1 = float(sys.argv[2])
+    y1 = float(sys.argv[3])
+    x2 = float(sys.argv[4])
+    y2 = float(sys.argv[5])
+
+    # # FOR TESTING REMOVE LATER--------------------------------------------------------------------------
+    # filename = "robot_env_01.txt"
+    # x1 = 1.0
+    # y1 = 2.0
+    # x2 = 8.5
+    # y2 = 7
+    # #----------------------------------------------------------------------------------------------------
 
     # Read data and parse polygons
     lines = [line.rstrip('\n') for line in open(filename)]
