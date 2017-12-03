@@ -73,47 +73,225 @@ def get_euclidean_distance(point1, point2):
     :return: euclidean distance between the 2 points
     """
     x1 = point1[0]
-    y1 = point2[0]
-    x2 = point1[1]
+    y1 = point1[0]
+    x2 = point2[1]
     y2 = point2[1]
     dist = math.sqrt(math.pow(x2 - x1, 2) + math.pow(y2 - y1, 2))
     return dist
 
-def find_closest_point(point, points, adjListMap):
+def find_closest_point(new_point, points, adjListMap):
     """
-    Find the closest vertex to the given point based on the existing
+    Find the closest vertex to the given point based on the adjListMap
 
-    :param point:
-    :param points:
-    :param adjListMap:
+    :param new_point: label of new point to add to map
+    :param points: map point labels to their coordinates
+    :param adjListMap: map from point labels to their neighbors
 
     :return: label of the closest point and the distance to reach that point
     """
+    closest_point = -1
+    min_dist = 5000 # represents infinity
+
+    for label in adjListMap:
+        vertex = points[label]
+        dist = get_euclidean_distance(new_point, vertex)
+
+        if dist < min_dist:
+            closest_point = label
+            min_dist = dist
+
+    return closest_point, min_dist
+
+def has_no_edges(adjListMap):
+    """
+    Detects if the adjListMap has edges or not
+
+    :param adjListMap: map from point label to its neighbors
+    :return: True if there no edges in the map, False otherwise
+    """
+    for label in adjListMap:
+        if len(adjListMap[label]) != 0: # Has an edge
+            return False
+
+    # No edges
+    return True
+
+def calculate_slope_intercept(pt, slope):
+    """
+    Find the y-intercept of the line with the given slope and that goes through the given point
+
+    :param pt: point that line goes through
+    :param slope: slope of the line
+    :return: y-intercept of the line
+    """
+    x = pt[0]
+    y = pt[1]
+    b = y - slope * x
+    return b
+
+def get_line_equation(a, b):
+    """
+    Find the slope and y-intercept of the line formed by the given points
+
+    :param a: point a (2-tuple)
+    :param b: point b
+
+    :return: slope and y-intercept of the line
+    """
+    x1 = a[0]
+    y1 = a[1]
+    x2 = b[0]
+    y2 = b[1]
+
+    m = ((y2 - y1) * 1.0)/(x2 - x1)
+    b = calculate_slope_intercept(a, m)
+    return m, b
+
+def get_distance_to_edge(new_point, edge, points):
+    """
+    Detects if the adjListMap has edges or not
+
+    :param new_point: label of new point to add to map
+    :param edge: 2-tuple of point labels of the edge's endpoints
+    :param points: map from point label to the point's coordinates
+    :return: distance to the edge and the intersecting point (which was used to find the distance)
+
+    """
+    new_point_coord = points[new_point]
+    edge_endpt_1 = points[edge[0]]
+    edge_endpt_2 = points[edge[1]]
+
+    # Handle vertical line case separately
+    if edge_endpt_1[0] == edge_endpt_2[0]:
+        x = edge_endpt_1[0]
+        intersect_pt = [x, new_point_coord[1]] # Take x-value of either point and y-value of new point
+        dist = math.fabs(x - new_point_coord[0]) # Take absolute difference between x-values
+        return dist, intersect_pt
+    # Handle horizontal line separately
+    elif edge_endpt_1[1] == edge_endpt_2[1]:
+        y = edge_endpt_1[1]
+        intersect_pt = [new_point_coord[0], y]
+        dist = math.fabs(y - new_point_coord[1])
+        return dist, intersect_pt
+
+    # Find equation of the line for the edge
+    m1, b1 = get_line_equation(edge_endpt_1, edge_endpt_2)
+
+    # Find equation of perpendicular line that goes through the new point
+    m2 = -1.0/m1
+    b2 = calculate_slope_intercept(new_point_coord, m2)
+
+    # Find where the edge and the perpendicular line intersect
+    x_intersect = ((b2 - b1) * 1.0)/(m1 - m2)
+    y_intersect = m1 * x_intersect + b1
+    intersect_pt = [x_intersect, y_intersect]
+    dist = get_euclidean_distance(new_point_coord, intersect_pt)
+    return dist, intersect_pt
+
+def is_between_endpts(intersect_pt, edge):
+    """
+    Determine whether the intersection point is located between the endpoints along the edge or not
+    :param intersect_pt: 2-tuple of coordinates for the intersection point
+    :param edge: 2-list of the edge's endpoint coordinates
+
+    :return: True if intersect_pt is located between the endpoints of the edge, False otherwise
+    """
+    endpt_a = edge[0]
+    endpt_b = edge[1]
+    c = intersect_pt
+
+    dist_ac = get_euclidean_distance(endpt_a, c)
+    dist_cb = get_euclidean_distance(c, endpt_b)
+    dist_ab = get_euclidean_distance(endpt_a, endpt_b)
+
+    epsilon = 0.01 # Because equivalence may not work with decimals
+    return True if math.fabs(dist_ab - (dist_ac + dist_cb)) <= 0.01 else False
+
+def find_closest_edge(new_point, points, adjListMap):
+    """
+    Find the closest edge to the given point based on the adjListMap
+    If there are no edges on the map, return -1 as the point and 5000 as the min_dist
+    If there is an edge, give the two endpoints that form the edge and the intersecting pt
+
+    :param new_point: label of new point to add to map
+    :param points: map point labels to their coordinates
+    :param adjListMap: map from point labels to their neighbors
+
+    :return: closest edge (as 2-tuple of labels of its endpoints) and the distance from new point to the edge
+    """
+    closest_edge = [-1, -1]
+    min_dist = 5000 # represents infinity, since 10x10 grid
+    closest_intersect_pt = [-1, -1]
+
+    if has_no_edges(adjListMap):
+        return closest_edge, min_dist, closest_intersect_pt
+
+    # For every edge (label-neighbor pair), find dist from new point to the edge
+    # Update min edge if the distance found is smaller
+    for label in adjListMap:
+        for neighbor_label in adjListMap[label]:
+            edge = [label, neighbor_label]
+            dist, intersect_pt = get_distance_to_edge(new_point, edge, points)
+
+            # Check if intersect pt is between edge's endpoints, if not, then throw out edge
+            edge_coordinates = [points[label], points[neighbor_label]]
+            if not is_between_endpts(intersect_pt, edge_coordinates):
+                continue
+
+            if dist < min_dist:
+                closest_edge = edge
+                min_dist = dist
+                closest_intersect_pt = intersect_pt
+
+    return closest_edge, min_dist, closest_intersect_pt
 
 def growSimpleRRT(points):
     newPoints = dict()
     adjListMap = dict()
-    
+
     # Your code goes here
     if points is None:
         return newPoints, adjListMap
 
     newPoints = copy.deepcopy(points)
+    numPoints = len(newPoints)
 
     for label in points:
         point = points[label]
 
         if not adjListMap: # Checks if adjListMap is empty
-            adjListMap[label] = [point] # Add point as starting node
+            adjListMap[label] = [] # Add point as starting node (has no neighbors to start off)
             continue
 
-        # Find closest point or edge to connect to
+        # Find closest point and edge
         closest_point, closest_pt_dist = find_closest_point(point, newPoints, adjListMap)
-        closest_edge_a, closest_edge_b, closest_edge_dist = find_closest_edge(point, newPoints, adjListMap)
+        closest_edge, closest_edge_dist, closest_intersect_pt = find_closest_edge(label, newPoints, adjListMap)
 
-        # If point, then add as neighbor
+        # If point, then add as neighbor to the closest point
+        if closest_pt_dist <= closest_edge_dist:
+            adjListMap[closest_point].append(label)
+            adjListMap[label] = [closest_point]
 
         # If edge, then create a new point and update adjListMap and newPoints
+        else:
+            # Add intersection point coordinates to points
+            intersect_label = numPoints + 1
+            newPoints[intersect_label] = [closest_intersect_pt]
+            numPoints += 1
+
+            # Update endpoint neighbors and add adjList for intersection and new points
+            endpt_a = closest_edge[0]
+            endpt_b = closest_edge[1]
+
+            adjListMap[endpt_a].remove(endpt_b)
+            adjListMap[endpt_a].add(intersect_label)
+
+            adjListMap[endpt_b].remove(endpt_a)
+            adjListMap[endpt_b].add(intersect_label)
+
+            adjListMap[label] = [intersect_label]
+
+            adjListMap[intersect_label] = [endpt_a, endpt_b, label]
 
     return newPoints, adjListMap
 
@@ -200,7 +378,7 @@ def retrieve_path(start, goal, nodes_dict):
 
 def basicSearch(tree, start, goal):
     path = []
-    
+
     # Your code goes here. As the result, the function should
     # return a list of vertex labels, e.g.
     #
@@ -423,28 +601,24 @@ def RRT(robot, obstacles, startPoint, goalPoint):
     return points, tree, path
 
 if __name__ == "__main__":
-    # Retrive file name for input data
-    if(len(sys.argv) < 6):
-        print "Five arguments required: python spr.py [env-file] [x1] [y1] [x2] [y2]"
-        exit()
-    
-    filename = sys.argv[1]
-    x1 = float(sys.argv[2])
-    y1 = float(sys.argv[3])
-    x2 = float(sys.argv[4])
-    y2 = float(sys.argv[5])
+    # # Retrive file name for input data
+    # if(len(sys.argv) < 6):
+    #     print "Five arguments required: python spr.py [env-file] [x1] [y1] [x2] [y2]"
+    #     exit()
+    #
+    # filename = sys.argv[1]
+    # x1 = float(sys.argv[2])
+    # y1 = float(sys.argv[3])
+    # x2 = float(sys.argv[4])
+    # y2 = float(sys.argv[5])
 
-    """ FOR TESTING REMOVE LATER--------------------------------------------------------------------------
+    # FOR TESTING REMOVE LATER--------------------------------------------------------------------------
     filename = "robot_env_01.txt"
     x1 = 1.0
     y1 = 2.0
     x2 = 8.5
     y2 = 7
-
-    adjListMap = {0: [1, 2], 1: [2, 3, 4], 2: [3], 3: [4], 4: []}
-    path = basicSearch(adjListMap, 4, 3)
-    print "path = {}".format(path)
-    """
+    #----------------------------------------------------------------------------------------------------
 
     # Read data and parse polygons
     lines = [line.rstrip('\n') for line in open(filename)]
@@ -473,7 +647,6 @@ if __name__ == "__main__":
     # point=(x1,y1)
     # print "robot at",point,"is collisionfree ?",isCollisionFree(robot,point,obstacles)
     ########################################
-
 
     # Visualize
     robotStart = []
