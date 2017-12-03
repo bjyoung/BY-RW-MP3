@@ -73,8 +73,8 @@ def get_euclidean_distance(point1, point2):
     :return: euclidean distance between the 2 points
     """
     x1 = point1[0]
-    y1 = point1[0]
-    x2 = point2[1]
+    y1 = point1[1]
+    x2 = point2[0]
     y2 = point2[1]
     dist = math.sqrt(math.pow(x2 - x1, 2) + math.pow(y2 - y1, 2))
     return dist
@@ -293,6 +293,9 @@ def growSimpleRRT(points):
 
             adjListMap[intersect_label] = [endpt_a, endpt_b, label]
 
+        # FOR TESTING, visualize tree after every step
+        displayRRTandPath(points, adjListMap, None)
+
     return newPoints, adjListMap
 
 '''
@@ -454,7 +457,7 @@ def plotTree(points, tree):
         point = points[id]
 
         # Find all neighbors labels
-        neighbors = adjListMap[id]
+        neighbors = tree[id]
 
         # Draw line segment from inital point to its neighors
         for neighbor_id in neighbors:
