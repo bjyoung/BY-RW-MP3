@@ -7,6 +7,7 @@ import numpy as np
 import copy
 import Queue
 import math
+import random
 
 '''
 Set up matplotlib to create a plot with an empty square
@@ -26,7 +27,7 @@ def setupPlot():
     return fig, ax
 
 '''
-Make a patch for a single pology 
+Make a patch for a single pology
 '''
 def createPolygonPatch(polygon, color):
     verts = []
@@ -44,24 +45,24 @@ def createPolygonPatch(polygon, color):
     patch = patches.PathPatch(path, facecolor=color, lw=1)
 
     return patch
-    
+
 
 '''
-Render the problem  
+Render the problem
 '''
 def drawProblem(robotStart, robotGoal, polygons):
     fig, ax = setupPlot()
     patch = createPolygonPatch(robotStart, 'green')
-    ax.add_patch(patch)    
+    ax.add_patch(patch)
     patch = createPolygonPatch(robotGoal, 'red')
-    ax.add_patch(patch)    
+    ax.add_patch(patch)
     for p in range(0, len(polygons)):
         patch = createPolygonPatch(polygons[p], 'gray')
-        ax.add_patch(patch)    
+        ax.add_patch(patch)
     plt.show()
 
 '''
-Grow a simple RRT 
+Grow a simple RRT
 '''
 def get_euclidean_distance(point1, point2):
     """
@@ -299,7 +300,7 @@ def growSimpleRRT(points):
     return newPoints, adjListMap
 
 '''
-Perform basic search 
+Perform basic search
 '''
 class Node:
     """
@@ -535,7 +536,7 @@ def displayRRTandPath(points, tree, path, robotStart = None, robotGoal = None, p
     plt.grid(True)
     plt.show()
 
-    return 
+    return
 
 '''
 Collision checking
@@ -591,6 +592,8 @@ def isCollisionFree(robot, point, obstacles):
 
     return not collision
 
+def randSamplePoint(xBound,yBound):
+    return (round(random.uniform(0, xBound)*100)/100.0,round(random.uniform(0, yBound)*100)/100.0)
 '''
 The full RRT algorithm
 '''
@@ -600,7 +603,42 @@ def RRT(robot, obstacles, startPoint, goalPoint):
     tree = dict()
     path = []
     # Your code goes here.
-    
+
+    OBSedgeGroup=[]
+    for obs in obstacles:
+        i=0
+        while i < len(obs):
+            if i == len(obs)-1:
+                OBSedgeGroup.append((obs[i],obs[0]))
+            else:
+                OBSedgeGroup.append((obs[i],obs[i+1]))
+            i+=1
+
+    points[1]=startPoint
+    points[2]=goalPoint
+
+    nextPointIndex = 3
+
+    X_BOUND = 10
+    Y_BOUND = 10
+    for i in range(100):
+        tmpPoint = randSamplePoint(X_BOUND,Y_BOUND)
+        if isCollisionFree(robot,tmpPoint,obstacles):
+            points[nextPointIndex]=tmpPoint
+            points, tree = growSimpleRRT(points)
+            tmpEdgeIndexGroup = tree[nextPointIndex]
+            anyEdgeIntersect = False
+            pointA = points[nextPointIndex]
+            for edgeIndex in tmpEdgeIndexGroup:
+                pointB = points[edgeIndex]
+                for obsedge in OBSedgeGroup:
+                    anyEdgeIntersect = anyEdgeIntersect or intersect(pointA,pointB,obsedge[0],obsedge[1])
+            if not anyEdgeIntersect:#if no intesection
+                nextPointIndex=nextPointIndex+1
+
+
+    path = basicSearch(tree, 1, 2)
+    #print points,tree
     return points, tree, path
 
 if __name__ == "__main__":
@@ -688,24 +726,21 @@ if __name__ == "__main__":
     points[20] = (9, 0.6)
 
     # Printing the points
-    print "" 
+    print ""
     print "The input points are:"
     print str(points)
     print ""
-    
+
     points, adjListMap = growSimpleRRT(points)
 
-    # Search for a solution  
-    path = basicSearch(adjListMap, 1, 20)    
+    # Search for a solution
+    path = basicSearch(adjListMap, 1, 20)
 
-    # Your visualization code 
-    displayRRTandPath(points, adjListMap, path) 
+    # Your visualization code
+    displayRRTandPath(points, adjListMap, path)
 
     # Solve a real RRT problem
-    RRT(robot, obstacles, (x1, y1), (x2, y2))
-    
-    # Your visualization code 
+    points, adjListMap, path = RRT(robot, obstacles, (x1, y1), (x2, y2))
+
+    # Your visualization code
     displayRRTandPath(points, adjListMap, path, robotStart, robotGoal, obstacles)
-
-
-
