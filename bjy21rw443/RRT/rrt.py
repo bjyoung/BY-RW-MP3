@@ -593,7 +593,7 @@ def isCollisionFree(robot, point, obstacles):
     return not collision
 
 def randSamplePoint(xBound,yBound):
-    return (round(random.uniform(0, xBound)*100)/100.0,round(random.uniform(0, yBound)*100)/100.0)
+    return (round(random.uniform(0, xBound)*10)/10.0,round(random.uniform(0, yBound)*10)/10.0)
 '''
 The full RRT algorithm
 '''
@@ -615,13 +615,12 @@ def RRT(robot, obstacles, startPoint, goalPoint):
             i+=1
 
     points[1]=startPoint
-    points[2]=goalPoint
 
-    nextPointIndex = 3
+    nextPointIndex = 2
 
     X_BOUND = 10
     Y_BOUND = 10
-    for i in range(100):
+    for i in range(200):
         tmpPoint = randSamplePoint(X_BOUND,Y_BOUND)
         if isCollisionFree(robot,tmpPoint,obstacles):
             points[nextPointIndex]=tmpPoint
@@ -633,12 +632,18 @@ def RRT(robot, obstacles, startPoint, goalPoint):
                 pointB = points[edgeIndex]
                 for obsedge in OBSedgeGroup:
                     anyEdgeIntersect = anyEdgeIntersect or intersect(pointA,pointB,obsedge[0],obsedge[1])
+                    #print pointA,pointB,obsedge[0],obsedge[1],"Intersect ? ",intersect(pointA,pointB,obsedge[0],obsedge[1])
             if not anyEdgeIntersect:#if no intesection
                 nextPointIndex=nextPointIndex+1
+            else:
+                points[nextPointIndex]=()
 
+        # else:
+        #     print "collision at this point",tmpPoint
 
-    path = basicSearch(tree, 1, 2)
-    #print points,tree
+    #print tree
+    #print points
+    #print path
     return points, tree, path
 
 if __name__ == "__main__":
