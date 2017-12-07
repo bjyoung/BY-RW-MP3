@@ -662,7 +662,7 @@ def RRT(robot, obstacles, startPoint, goalPoint):
     begin = timeit.default_timer()
 
 
-    for i in range(76):
+    for i in range(150):
         tmpPoint = randSamplePoint(X_BOUND,Y_BOUND)
         if isCollisionFree(robot,tmpPoint,obstacles):
             prevlen = len(points)
@@ -698,8 +698,9 @@ def RRT(robot, obstacles, startPoint, goalPoint):
                 points=copy.deepcopy(prevPoints)
                 tree=copy.deepcopy(prevTree)
 
-            if i%25==0:
-                displayRRTandPath(points, tree, path, robotStart, robotGoal, obstacles)
+            # if i%25==0:
+            #     displayRRTandPath(points, tree, path, robotStart, robotGoal, obstacles)
+            print i
     stop = timeit.default_timer()
     print "running time: ",stop - begin
     #print tree
