@@ -8,6 +8,7 @@ import copy
 import Queue
 import math
 import random
+import timeit
 
 '''
 Set up matplotlib to create a plot with an empty square
@@ -453,13 +454,11 @@ def plotTree(points, tree):
         return
 
     tree_color = 'black'
-
     for id in tree.keys():
         point = points[id]
 
         # Find all neighbors labels
         neighbors = tree[id]
-
         # Draw line segment from inital point to its neighors
         for neighbor_id in neighbors:
             neighbor_pt = points[neighbor_id]
@@ -584,6 +583,11 @@ def isCollisionFree(robot, point, obstacles):
         for pt in globalRobot:
             collision = collision or obsPath.contains_point(pt)
             #as long as any point is in the polygon,we have collision
+    #add boundary
+    edgeGroup.append(((0,0),(0,10)))
+    edgeGroup.append(((0,0),(10,0)))
+    edgeGroup.append(((10,0),(10,10)))
+    edgeGroup.append(((0,10),(10,10)))
 
     # need also check if every edge intersects with polygons
     for edge in globalEdge:
@@ -594,6 +598,29 @@ def isCollisionFree(robot, point, obstacles):
 
 def randSamplePoint(xBound,yBound):
     return (round(random.uniform(0, xBound)*10)/10.0,round(random.uniform(0, yBound)*10)/10.0)
+
+def edgePointInterval(start,end):
+    if(start[0]!=end[0]):
+        m,b=get_line_equation(start,end)
+    else:
+        m,b=0,0
+    INTERVEL = 20.0
+    if m==b and b==0:
+        INCREMENT = (end[1]-start[1])/20.0
+    else:
+        INCREMENT = (end[0]-start[0])/20.0
+    points=[]
+    for i in range(20):
+        if m==b and b==0:
+            xCor = start[0]
+            yCor = start[1]+i*INCREMENT
+        else:
+            xCor = start[0]+INCREMENT*i
+            yCor = m*xCor+b
+        points.append((xCor,yCor))
+    points.append(end)
+    return points
+
 '''
 The full RRT algorithm
 '''
@@ -613,6 +640,11 @@ def RRT(robot, obstacles, startPoint, goalPoint):
             else:
                 OBSedgeGroup.append((obs[i],obs[i+1]))
             i+=1
+    #add boundary
+    OBSedgeGroup.append(((0,0),(0,10)))
+    OBSedgeGroup.append(((0,0),(10,0)))
+    OBSedgeGroup.append(((10,0),(10,10)))
+    OBSedgeGroup.append(((0,10),(10,10)))
 
     points[1]=startPoint
 
@@ -620,11 +652,25 @@ def RRT(robot, obstacles, startPoint, goalPoint):
 
     X_BOUND = 10
     Y_BOUND = 10
-    for i in range(200):
+
+    def start((x,y)):
+        return (x+x1, y+y1)
+    def goal((x,y)):
+        return (x+x2, y+y2)
+    robotStart = map(start, robot)
+    robotGoal = map(goal, robot)
+    begin = timeit.default_timer()
+
+
+    for i in range(76):
         tmpPoint = randSamplePoint(X_BOUND,Y_BOUND)
         if isCollisionFree(robot,tmpPoint,obstacles):
+            prevlen = len(points)
+            prevPoints = copy.deepcopy(points)
+            prevTree = copy.deepcopy(tree)
             points[nextPointIndex]=tmpPoint
             points, tree = growSimpleRRT(points)
+            postlen = len(points)
             tmpEdgeIndexGroup = tree[nextPointIndex]
             anyEdgeIntersect = False
             pointA = points[nextPointIndex]
@@ -632,15 +678,30 @@ def RRT(robot, obstacles, startPoint, goalPoint):
                 pointB = points[edgeIndex]
                 for obsedge in OBSedgeGroup:
                     anyEdgeIntersect = anyEdgeIntersect or intersect(pointA,pointB,obsedge[0],obsedge[1])
-                    #print pointA,pointB,obsedge[0],obsedge[1],"Intersect ? ",intersect(pointA,pointB,obsedge[0],obsedge[1])
+                    if anyEdgeIntersect==True:
+                        break
+                if anyEdgeIntersect==True:
+                    break
+                pointInterval = edgePointInterval(pointA,pointB)
+                for point in pointInterval:
+                    if not isCollisionFree(robot,point,obstacles):
+                        anyEdgeIntersect=True
+                        break
+                if anyEdgeIntersect==True:
+                    break
             if not anyEdgeIntersect:#if no intesection
-                nextPointIndex=nextPointIndex+1
+                nextPointIndex=nextPointIndex+postlen-prevlen
+                if  get_euclidean_distance(tmpPoint,goalPoint)<=.1:
+                    print "goal"
+                    break
             else:
-                points[nextPointIndex]=()
+                points=copy.deepcopy(prevPoints)
+                tree=copy.deepcopy(prevTree)
 
-        # else:
-        #     print "collision at this point",tmpPoint
-
+            if i%25==0:
+                displayRRTandPath(points, tree, path, robotStart, robotGoal, obstacles)
+    stop = timeit.default_timer()
+    print "running time: ",stop - begin
     #print tree
     #print points
     #print path
