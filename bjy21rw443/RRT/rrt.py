@@ -597,7 +597,7 @@ def isCollisionFree(robot, point, obstacles):
     return not collision
 
 def randSamplePoint(xBound,yBound):
-    return (round(random.uniform(0, xBound)*10)/10.0,round(random.uniform(0, yBound)*10)/10.0)
+    return (random.uniform(0, xBound),random.uniform(0, yBound))
 
 def edgePointInterval(start,end):
     if(start[0]!=end[0]):
@@ -625,7 +625,10 @@ def edgePointInterval(start,end):
 The full RRT algorithm
 '''
 def RRT(robot, obstacles, startPoint, goalPoint):
-
+    if not isCollisionFree(robot, startPoint, obstacles) or not isCollisionFree(robot, goalPoint, obstacles):
+        print "collision start/goal point,no solution possible"
+        exit(0)
+    MAX_NODES = 120
     points = dict()
     tree = dict()
     path = []
@@ -653,17 +656,14 @@ def RRT(robot, obstacles, startPoint, goalPoint):
     X_BOUND = 10
     Y_BOUND = 10
 
-    def start((x,y)):
-        return (x+x1, y+y1)
-    def goal((x,y)):
-        return (x+x2, y+y2)
-    robotStart = map(start, robot)
-    robotGoal = map(goal, robot)
     begin = timeit.default_timer()
 
 
-    for i in range(150):
-        tmpPoint = randSamplePoint(X_BOUND,Y_BOUND)
+    for i in range(MAX_NODES+1):
+        if i == MAX_NODES:
+            tmpPoint=goalPoint
+        else:
+            tmpPoint = randSamplePoint(X_BOUND,Y_BOUND)
         if isCollisionFree(robot,tmpPoint,obstacles):
             prevlen = len(points)
             prevPoints = copy.deepcopy(points)
@@ -691,21 +691,18 @@ def RRT(robot, obstacles, startPoint, goalPoint):
                     break
             if not anyEdgeIntersect:#if no intesection
                 nextPointIndex=nextPointIndex+postlen-prevlen
-                if  get_euclidean_distance(tmpPoint,goalPoint)<=.1:
-                    print "goal"
-                    break
             else:
                 points=copy.deepcopy(prevPoints)
                 tree=copy.deepcopy(prevTree)
-
-            # if i%25==0:
-            #     displayRRTandPath(points, tree, path, robotStart, robotGoal, obstacles)
             print i
     stop = timeit.default_timer()
     print "running time: ",stop - begin
-    #print tree
-    #print points
-    #print path
+    goalLabel=1
+    for pt in points:
+        if points[pt] == goalPoint:
+            goalLabel=pt
+    path = basicSearch(tree, 1, goalLabel)
+
     return points, tree, path
 
 if __name__ == "__main__":
@@ -751,10 +748,6 @@ if __name__ == "__main__":
         print str(obstacles[p])
     print ""
 
-    # test sentence (delete before final submission) with start position
-    # point=(x1,y1)
-    # print "robot at",point,"is collisionfree ?",isCollisionFree(robot,point,obstacles)
-    ########################################
 
     # Visualize
     robotStart = []
