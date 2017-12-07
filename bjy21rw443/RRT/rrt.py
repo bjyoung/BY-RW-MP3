@@ -605,24 +605,24 @@ def RRT(robot, obstacles, startPoint, goalPoint):
     return points, tree, path
 
 if __name__ == "__main__":
-    # # Retrive file name for input data
-    # if(len(sys.argv) < 6):
-    #     print "Five arguments required: python spr.py [env-file] [x1] [y1] [x2] [y2]"
-    #     exit()
-    #
-    # filename = sys.argv[1]
-    # x1 = float(sys.argv[2])
-    # y1 = float(sys.argv[3])
-    # x2 = float(sys.argv[4])
-    # y2 = float(sys.argv[5])
+    # Retrive file name for input data
+    if(len(sys.argv) < 6):
+        print "Five arguments required: python spr.py [env-file] [x1] [y1] [x2] [y2]"
+        exit()
 
-    # FOR TESTING REMOVE LATER--------------------------------------------------------------------------
-    filename = "robot_env_01.txt"
-    x1 = 1.0
-    y1 = 2.0
-    x2 = 8.5
-    y2 = 7
-    #----------------------------------------------------------------------------------------------------
+    filename = sys.argv[1]
+    x1 = float(sys.argv[2])
+    y1 = float(sys.argv[3])
+    x2 = float(sys.argv[4])
+    y2 = float(sys.argv[5])
+
+    # # FOR TESTING REMOVE LATER--------------------------------------------------------------------------
+    # filename = "robot_env_01.txt"
+    # x1 = 1.0
+    # y1 = 2.0
+    # x2 = 8.5
+    # y2 = 7
+    # #----------------------------------------------------------------------------------------------------
 
     # Read data and parse polygons
     lines = [line.rstrip('\n') for line in open(filename)]
