@@ -694,7 +694,7 @@ def RRT(robot, obstacles, startPoint, goalPoint):
     if not isCollisionFree(robot, startPoint, obstacles) or not isCollisionFree(robot, goalPoint, obstacles):
         print "collision start/goal point,no solution possible"
         exit(0)
-    MAX_NODES = 2000
+    MAX_NODES = 500
     points = dict()
     tree = dict()
     # Your code goes here.
