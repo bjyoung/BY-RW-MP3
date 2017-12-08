@@ -209,13 +209,14 @@ def is_between_endpts(intersect_pt, edge):
     epsilon = 0.01 # Because equivalence may not work with decimals
     return True if math.fabs(dist_ab - (dist_ac + dist_cb)) <= 0.01 else False
 
-def find_closest_edge(new_point, points, adjListMap):
+def find_closest_edge(new_point, closest_point, points, adjListMap):
     """
     Find the closest edge to the given point based on the adjListMap
     If there are no edges on the map, return -1 as the point and 5000 as the min_dist
     If there is an edge, give the two endpoints that form the edge and the intersecting pt
 
     :param new_point: label of new point to add to map
+    :param closest_point: label of the closest point in the tree to the new point
     :param points: map point labels to their coordinates
     :param adjListMap: map from point labels to their neighbors
 
@@ -225,25 +226,25 @@ def find_closest_edge(new_point, points, adjListMap):
     min_dist = 5000 # represents infinity, since 10x10 grid
     closest_intersect_pt = (-1, -1)
 
-    if has_no_edges(adjListMap):
+    neighbor_labels = adjListMap[closest_point]
+    if not neighbor_labels: # Check if there are any edges from closest_point
         return closest_edge, min_dist, closest_intersect_pt
 
-    # For every edge (label-neighbor pair), find dist from new point to the edge
+    # For every edge (label-neighbor pair) from the closest point, find dist from new point to the edge
     # Update min edge if the distance found is smaller
-    for label in adjListMap:
-        for neighbor_label in adjListMap[label]:
-            edge = [label, neighbor_label]
-            dist, intersect_pt = get_distance_to_edge(new_point, edge, points)
+    for neighbor_label in neighbor_labels:
+        edge = [closest_point, neighbor_label]
+        dist, intersect_pt = get_distance_to_edge(new_point, edge, points)
 
-            # Check if intersect pt is between edge's endpoints, if not, then throw out edge
-            edge_coordinates = [points[label], points[neighbor_label]]
-            if not is_between_endpts(intersect_pt, edge_coordinates):
-                continue
+        # Check if intersect pt is between edge's endpoints, if not, then throw out edge
+        edge_coordinates = [points[closest_point], points[neighbor_label]]
+        if not is_between_endpts(intersect_pt, edge_coordinates):
+            continue
 
-            if dist < min_dist:
-                closest_edge = edge
-                min_dist = dist
-                closest_intersect_pt = intersect_pt
+        if dist < min_dist:
+            closest_edge = edge
+            min_dist = dist
+            closest_intersect_pt = intersect_pt
 
     return closest_edge, min_dist, closest_intersect_pt
 
@@ -267,7 +268,7 @@ def growSimpleRRT(points):
 
         # Find closest point and edge
         closest_point, closest_pt_dist = find_closest_point(point, newPoints, adjListMap)
-        closest_edge, closest_edge_dist, closest_intersect_pt = find_closest_edge(label, newPoints, adjListMap)
+        closest_edge, closest_edge_dist, closest_intersect_pt = find_closest_edge(label, closest_point, newPoints, adjListMap)
 
         # If point, then add as neighbor to the closest point
         if closest_pt_dist <= closest_edge_dist:
@@ -296,9 +297,9 @@ def growSimpleRRT(points):
             adjListMap[intersect_label] = [endpt_a, endpt_b, label]
 
         # # FOR TESTING, visualize tree after every step
-        # displayRRTandPath(newPoints, adjListMap, None)
+        displayRRTandPath(newPoints, adjListMap, None)
 
-    return newPoints, adjListMap
+    # return newPoints, adjListMap
 
 '''
 Perform basic search
