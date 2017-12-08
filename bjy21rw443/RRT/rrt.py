@@ -297,9 +297,9 @@ def growSimpleRRT(points):
             adjListMap[intersect_label] = [endpt_a, endpt_b, label]
 
         # # FOR TESTING, visualize tree after every step
-        displayRRTandPath(newPoints, adjListMap, None)
+        #displayRRTandPath(newPoints, adjListMap, None)
 
-    # return newPoints, adjListMap
+    return newPoints, adjListMap
 
 '''
 Perform basic search
@@ -621,85 +621,82 @@ def edgePointInterval(start,end):
         points.append((xCor,yCor))
     points.append(end)
     return points
-def growComplexRRT(points,prevTree,OBSedgeGroup):
-    newPoints = dict()
-    adjListMap = dict()
 
-    # Your code goes here
-    if points is None:
-        return newPoints, adjListMap
-
+def growComplexRRT(new_point, points, tree,OBSedgeGroup):
+    """
+    :param new_point: label for new point
+    :param points: dictionary mapping labels to coordinates
+    :param tree: adjListMap mapping label to neighbor labels
+    :param OBSedgeGroup: obstacles
+    :return: updated points and tree
+    """
     newPoints = copy.deepcopy(points)
     numPoints = len(newPoints)
 
     lastIndex  = len(points)
     originPoints = copy.deepcopy(points)
-    originTree = copy.deepcopy(prevTree)
+    originTree = copy.deepcopy(tree)
 
-    for label in points:
-        point = points[label]
+    point = points[new_point]
 
-        if not adjListMap: # Checks if adjListMap is empty
-            adjListMap[label] = [] # Add point as starting node (has no neighbors to start off)
-            continue
+    if not tree: # Checks if tree is empty
+        tree[new_point] = [] # Add point as starting node (has no neighbors to start off)
+        return newPoints, tree
 
-        # Find closest point and edge
-        closest_point, closest_pt_dist = find_closest_point(point, newPoints, adjListMap)
-        closest_edge, closest_edge_dist, closest_intersect_pt = find_closest_edge(label, newPoints, adjListMap)
+    # Find closest point and edge
+    closest_point, closest_pt_dist = find_closest_point(point, newPoints, tree)
+    closest_edge, closest_edge_dist, closest_intersect_pt = find_closest_edge(new_point, closest_point, newPoints, tree)
 
-        # If point, then add as neighbor to the closest point
-        if closest_pt_dist <= closest_edge_dist:
-            adjListMap[closest_point].append(label)
-            adjListMap[label] = [closest_point]
+    # If point, then add as neighbor to the closest point
+    if closest_pt_dist <= closest_edge_dist:
+        tree[closest_point].append(new_point)
+        tree[new_point] = [closest_point]
 
-        # If edge, then create a new point and update adjListMap and newPoints
-        else:
-            # Add intersection point coordinates to points
-            intersect_label = numPoints + 1
-            newPoints[intersect_label] = closest_intersect_pt
-            numPoints += 1
+    # If edge, then create a new point and update tree and newPoints
+    else:
+        # Add intersection point coordinates to points
+        intersect_label = numPoints + 1
+        newPoints[intersect_label] = closest_intersect_pt
+        numPoints += 1
 
-            # Update endpoint neighbors and add adjList for intersection and new points
-            endpt_a = closest_edge[0]
-            endpt_b = closest_edge[1]
+        # Update endpoint neighbors and add adjList for intersection and new points
+        endpt_a = closest_edge[0]
+        endpt_b = closest_edge[1]
 
-            adjListMap[endpt_a].remove(endpt_b)
-            adjListMap[endpt_a].append(intersect_label)
+        # Check collision here, if collide, then do not add point, return original tree
+        # If no collision, add new edge and intersect point
 
-            adjListMap[endpt_b].remove(endpt_a)
-            adjListMap[endpt_b].append(intersect_label)
+        tree[endpt_a].remove(endpt_b)
+        tree[endpt_a].append(intersect_label)
 
-            adjListMap[label] = [intersect_label]
+        tree[endpt_b].remove(endpt_a)
+        tree[endpt_b].append(intersect_label)
 
-            adjListMap[intersect_label] = [endpt_a, endpt_b, label]
-        # # FOR TESTING, visualize tree after every step
-        # displayRRTandPath(newPoints, adjListMap, None)
-        if adjListMap.has_key(lastIndex):
-            tmpEdgeIndexGroup = adjListMap[lastIndex]
-            anyEdgeIntersect = False
-            pointA = newPoints[lastIndex]
-            for edgeIndex in tmpEdgeIndexGroup:
-                pointB = newPoints[edgeIndex]
-                for obsedge in OBSedgeGroup:
-                    anyEdgeIntersect = anyEdgeIntersect or intersect(pointA, pointB, obsedge[0], obsedge[1])
-                    if anyEdgeIntersect == True:
-                        break
-                if anyEdgeIntersect == True:
-                    break
-                pointInterval = edgePointInterval(pointA, pointB)
-                for point in pointInterval:
-                    if not isCollisionFree(robot, point, obstacles):
-                        anyEdgeIntersect = True
-                        break
-                if anyEdgeIntersect == True:
-                    break
-            if anyEdgeIntersect == True:
-                break
+        tree[new_point] = [intersect_label]
+
+        tree[intersect_label] = [endpt_a, endpt_b, new_point]
+
+    # # FOR TESTING, visualize tree after every step
+    # displayRRTandPath(newPoints, tree, None)
+    if tree.has_key(lastIndex):
+        tmpEdgeIndexGroup = tree[lastIndex]
+        anyEdgeIntersect = False
+        pointA = newPoints[lastIndex]
+        for edgeIndex in tmpEdgeIndexGroup:
+            pointB = newPoints[edgeIndex]
+            for obsedge in OBSedgeGroup:
+                anyEdgeIntersect = anyEdgeIntersect or intersect(pointA, pointB, obsedge[0], obsedge[1])
+            pointInterval = edgePointInterval(pointA, pointB)
+            for point in pointInterval:
+                if not isCollisionFree(robot, point, obstacles):
+                    anyEdgeIntersect = True
+
     if anyEdgeIntersect == True:
         originPoints.pop(lastIndex,None)
         return originPoints,originTree
     else:
-        return newPoints, adjListMap
+        return newPoints, tree
+
 '''
 The full RRT algorithm
 '''
@@ -747,7 +744,7 @@ def RRT(robot, obstacles, startPoint, goalPoint):
             prevlen = len(points)
             prevTree = copy.deepcopy(tree)
             points[nextPointIndex]=tmpPoint
-            points, tree = growComplexRRT(points,prevTree,OBSedgeGroup)
+            points, tree = growComplexRRT(nextPointIndex, points,prevTree,OBSedgeGroup)
             postlen = len(points)
             nextPointIndex = nextPointIndex + postlen - prevlen
             print i
@@ -762,24 +759,24 @@ def RRT(robot, obstacles, startPoint, goalPoint):
     return points, tree, path
 
 if __name__ == "__main__":
-    # Retrive file name for input data
-    if(len(sys.argv) < 6):
-        print "Five arguments required: python spr.py [env-file] [x1] [y1] [x2] [y2]"
-        exit()
+    # # Retrive file name for input data
+    # if(len(sys.argv) < 6):
+    #     print "Five arguments required: python spr.py [env-file] [x1] [y1] [x2] [y2]"
+    #     exit()
+    #
+    # filename = sys.argv[1]
+    # x1 = float(sys.argv[2])
+    # y1 = float(sys.argv[3])
+    # x2 = float(sys.argv[4])
+    # y2 = float(sys.argv[5])
 
-    filename = sys.argv[1]
-    x1 = float(sys.argv[2])
-    y1 = float(sys.argv[3])
-    x2 = float(sys.argv[4])
-    y2 = float(sys.argv[5])
-
-    # # FOR TESTING REMOVE LATER--------------------------------------------------------------------------
-    # filename = "robot_env_01.txt"
-    # x1 = 1.0
-    # y1 = 2.0
-    # x2 = 8.5
-    # y2 = 7
-    # #----------------------------------------------------------------------------------------------------
+    # FOR TESTING REMOVE LATER--------------------------------------------------------------------------
+    filename = "robot_env_01.txt"
+    x1 = 1.0
+    y1 = 2.0
+    x2 = 8.5
+    y2 = 7
+    #----------------------------------------------------------------------------------------------------
 
     # Read data and parse polygons
     lines = [line.rstrip('\n') for line in open(filename)]
