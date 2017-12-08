@@ -694,7 +694,7 @@ def RRT(robot, obstacles, startPoint, goalPoint):
     if not isCollisionFree(robot, startPoint, obstacles) or not isCollisionFree(robot, goalPoint, obstacles):
         print "collision start/goal point,no solution possible"
         exit(0)
-    MAX_NODES = 500
+    MAX_NODES = 2000
     points = dict()
     tree = dict()
     # Your code goes here.
@@ -724,7 +724,7 @@ def RRT(robot, obstacles, startPoint, goalPoint):
     begin = timeit.default_timer()
 
     for i in range(MAX_NODES+1):
-        if i == MAX_NODES:
+        if i %200==0:
             tmpPoint=goalPoint
         else:
             tmpPoint = randSamplePoint(X_BOUND,Y_BOUND)
@@ -735,6 +735,9 @@ def RRT(robot, obstacles, startPoint, goalPoint):
             points, tree = growComplexRRT(points,prevTree,OBSedgeGroup)
             postlen = len(points)
             nextPointIndex = nextPointIndex + postlen - prevlen
+        if i %200==0:
+            if postlen - prevlen!=0:
+                break
 
     stop = timeit.default_timer()
     print "running time: ",stop - begin
@@ -757,14 +760,6 @@ if __name__ == "__main__":
     y1 = float(sys.argv[3])
     x2 = float(sys.argv[4])
     y2 = float(sys.argv[5])
-
-    # # FOR TESTING REMOVE LATER--------------------------------------------------------------------------
-    # filename = "robot_env_01.txt"
-    # x1 = 1.0
-    # y1 = 2.0
-    # x2 = 8.5
-    # y2 = 7
-    # #----------------------------------------------------------------------------------------------------
 
     # Read data and parse polygons
     lines = [line.rstrip('\n') for line in open(filename)]
