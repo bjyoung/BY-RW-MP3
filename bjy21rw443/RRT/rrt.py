@@ -620,7 +620,85 @@ def edgePointInterval(start,end):
         points.append((xCor,yCor))
     points.append(end)
     return points
+def growComplexRRT(points,prevTree,OBSedgeGroup):
+    newPoints = dict()
+    adjListMap = dict()
 
+    # Your code goes here
+    if points is None:
+        return newPoints, adjListMap
+
+    newPoints = copy.deepcopy(points)
+    numPoints = len(newPoints)
+
+    lastIndex  = len(points)
+    originPoints = copy.deepcopy(points)
+    originTree = copy.deepcopy(prevTree)
+
+    for label in points:
+        point = points[label]
+
+        if not adjListMap: # Checks if adjListMap is empty
+            adjListMap[label] = [] # Add point as starting node (has no neighbors to start off)
+            continue
+
+        # Find closest point and edge
+        closest_point, closest_pt_dist = find_closest_point(point, newPoints, adjListMap)
+        closest_edge, closest_edge_dist, closest_intersect_pt = find_closest_edge(label, newPoints, adjListMap)
+
+        # If point, then add as neighbor to the closest point
+        if closest_pt_dist <= closest_edge_dist:
+            adjListMap[closest_point].append(label)
+            adjListMap[label] = [closest_point]
+
+        # If edge, then create a new point and update adjListMap and newPoints
+        else:
+            # Add intersection point coordinates to points
+            intersect_label = numPoints + 1
+            newPoints[intersect_label] = closest_intersect_pt
+            numPoints += 1
+
+            # Update endpoint neighbors and add adjList for intersection and new points
+            endpt_a = closest_edge[0]
+            endpt_b = closest_edge[1]
+
+            adjListMap[endpt_a].remove(endpt_b)
+            adjListMap[endpt_a].append(intersect_label)
+
+            adjListMap[endpt_b].remove(endpt_a)
+            adjListMap[endpt_b].append(intersect_label)
+
+            adjListMap[label] = [intersect_label]
+
+            adjListMap[intersect_label] = [endpt_a, endpt_b, label]
+        # # FOR TESTING, visualize tree after every step
+        # displayRRTandPath(newPoints, adjListMap, None)
+        if adjListMap.has_key(lastIndex):
+            tmpEdgeIndexGroup = adjListMap[lastIndex]
+            anyEdgeIntersect = False
+            pointA = newPoints[lastIndex]
+            for edgeIndex in tmpEdgeIndexGroup:
+                pointB = newPoints[edgeIndex]
+                for obsedge in OBSedgeGroup:
+                    anyEdgeIntersect = anyEdgeIntersect or intersect(pointA, pointB, obsedge[0], obsedge[1])
+                    if anyEdgeIntersect == True:
+                        break
+                if anyEdgeIntersect == True:
+                    break
+                pointInterval = edgePointInterval(pointA, pointB)
+                for point in pointInterval:
+                    if not isCollisionFree(robot, point, obstacles):
+                        anyEdgeIntersect = True
+                        break
+                if anyEdgeIntersect == True:
+                    break
+            if anyEdgeIntersect == True:
+                break
+    if anyEdgeIntersect == True:
+        originPoints.pop(lastIndex,None)
+        return originPoints,originTree
+    else:
+        return newPoints, adjListMap
 '''
 The full RRT algorithm
 '''
@@ -666,34 +744,11 @@ def RRT(robot, obstacles, startPoint, goalPoint):
             tmpPoint = randSamplePoint(X_BOUND,Y_BOUND)
         if isCollisionFree(robot,tmpPoint,obstacles):
             prevlen = len(points)
-            prevPoints = copy.deepcopy(points)
             prevTree = copy.deepcopy(tree)
             points[nextPointIndex]=tmpPoint
-            points, tree = growSimpleRRT(points)
+            points, tree = growComplexRRT(points,prevTree,OBSedgeGroup)
             postlen = len(points)
-            tmpEdgeIndexGroup = tree[nextPointIndex]
-            anyEdgeIntersect = False
-            pointA = points[nextPointIndex]
-            for edgeIndex in tmpEdgeIndexGroup:
-                pointB = points[edgeIndex]
-                for obsedge in OBSedgeGroup:
-                    anyEdgeIntersect = anyEdgeIntersect or intersect(pointA,pointB,obsedge[0],obsedge[1])
-                    if anyEdgeIntersect==True:
-                        break
-                if anyEdgeIntersect==True:
-                    break
-                pointInterval = edgePointInterval(pointA,pointB)
-                for point in pointInterval:
-                    if not isCollisionFree(robot,point,obstacles):
-                        anyEdgeIntersect=True
-                        break
-                if anyEdgeIntersect==True:
-                    break
-            if not anyEdgeIntersect:#if no intesection
-                nextPointIndex=nextPointIndex+postlen-prevlen
-            else:
-                points=copy.deepcopy(prevPoints)
-                tree=copy.deepcopy(prevTree)
+            nextPointIndex = nextPointIndex + postlen - prevlen
             print i
     stop = timeit.default_timer()
     print "running time: ",stop - begin
