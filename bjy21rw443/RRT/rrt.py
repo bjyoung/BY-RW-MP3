@@ -692,7 +692,8 @@ The full RRT algorithm
 '''
 def RRT(robot, obstacles, startPoint, goalPoint):
     if not isCollisionFree(robot, startPoint, obstacles) or not isCollisionFree(robot, goalPoint, obstacles):
-        print "collision start/goal point,no solution possible"
+        print "collision start/goal point,no solution possible,some extreme case like the robot may just touch any polygons," \
+                "we also consider as collision"
         exit(0)
     MAX_NODES = 2000
     points = dict()
@@ -749,9 +750,11 @@ def RRT(robot, obstacles, startPoint, goalPoint):
 
     return points, tree, path
 
+
 if __name__ == "__main__":
+
     # Retrive file name for input data
-    if(len(sys.argv) < 6):
+    if (len(sys.argv) < 6):
         print "Five arguments required: python spr.py [env-file] [x1] [y1] [x2] [y2]"
         exit()
 
@@ -771,7 +774,7 @@ if __name__ == "__main__":
         for p in range(0, len(xys)):
             xy = xys[p].split(',')
             polygon.append((float(xy[0]), float(xy[1])))
-        if line == 0 :
+        if line == 0:
             robot = polygon
         else:
             obstacles.append(polygon)
@@ -784,15 +787,19 @@ if __name__ == "__main__":
         print str(obstacles[p])
     print ""
 
-
     # Visualize
     robotStart = []
     robotGoal = []
 
-    def start((x,y)):
-        return (x+x1, y+y1)
-    def goal((x,y)):
-        return (x+x2, y+y2)
+
+    def start((x, y)):
+        return (x + x1, y + y1)
+
+
+    def goal((x, y)):
+        return (x + x2, y + y2)
+
+
     robotStart = map(start, robot)
     robotGoal = map(goal, robot)
     drawProblem(robotStart, robotGoal, obstacles)
@@ -836,7 +843,7 @@ if __name__ == "__main__":
     displayRRTandPath(points, adjListMap, path)
 
     # Solve a real RRT problem
-    points, adjListMap, path = RRT(robot, obstacles, (x1, y1), (x2, y2))
+    RRT(robot, obstacles, (x1, y1), (x2, y2))
 
     # Your visualization code
     displayRRTandPath(points, adjListMap, path, robotStart, robotGoal, obstacles)
